@@ -15,6 +15,7 @@ interface TaskItem {
 interface TaskChecklistProps {
   dayNumber: number;
   initialTasks?: TaskItem[];
+  onTaskToggle?: (taskId: string, isCompleted: boolean) => void;
   onComplete?: () => void;
 }
 
@@ -30,23 +31,35 @@ const DEFAULT_TASKS = [
 export default function TaskChecklist({
   dayNumber,
   initialTasks = DEFAULT_TASKS,
+  onTaskToggle,
   onComplete,
 }: TaskChecklistProps) {
   const [tasks, setTasks] = useState(initialTasks);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
   const completedCount = tasks.filter(t => t.completed).length;
   const progressPercent = (completedCount / tasks.length) * 100;
   const allCompleted = completedCount === tasks.length;
 
   const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const newCompleted = !task.completed;
+    onTaskToggle?.(id, newCompleted);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: newCompleted } : t));
   };
+
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Day {dayNumber}</h2>
-          <p className="text-sm text-zinc-500">6 tasks remaining today</p>
+          <p className="text-sm text-zinc-500">{tasks.length - completedCount} tasks remaining today</p>
         </div>
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
           <span className="text-xl font-bold">{Math.round(progressPercent)}%</span>

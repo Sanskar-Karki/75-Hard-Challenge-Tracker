@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ClerkProvider } from "@clerk/nextjs";
+import { AuthSync } from "@/components/auth/AuthSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,33 +14,35 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "75 Hard Tracker | Evolution",
   description: "The ultimate 75-day mental toughness challenge tracker. Premium, modern, and results-driven.",
 };
 
+
+
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <ClerkProvider>
-      <html
-        lang="en"
-        className={cn(
-          geistSans.variable,
-          geistMono.variable,
-          "h-full antialiased scroll-smooth"
-        )}
-        suppressHydrationWarning
-      >
-        <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html
+      lang="en"
+      className={cn(
+        geistSans.variable,
+        geistMono.variable,
+        "h-full antialiased scroll-smooth"
+      )}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ClerkProvider>
+          <AuthSync />
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
-
 

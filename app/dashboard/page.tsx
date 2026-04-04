@@ -1,33 +1,70 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Flame, Target, Calendar, Trophy, Zap, Share2 } from "lucide-react";
+import { Flame, Target, Calendar, Trophy, Zap, Share2, Droplets, Utensils, Dumbbell, BookOpen, Camera } from "lucide-react";
 import { use75Hard } from "@/hooks/use-75hard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DayDotGrid from "@/components/dashboard/DayDotGrid";
 import TaskChecklist from "@/components/dashboard/TaskChecklist";
 import StatsCard, { DetailedProgress } from "@/components/dashboard/StatsCard";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser, Show } from "@clerk/nextjs";
+import confetti from "canvas-confetti";
 
 export default function DashboardPage() {
-  const { currentChallenge, lastCompletedDay, getCurrentDay, completeDay, resetChallenge } = use75Hard();
-  const { isSignedIn, user } = useUser();
+  const { currentChallenge, lastCompletedDay, getCurrentDay, completeDay, updateTask, resetChallenge, fetchChallenge, isLoading, hasFetched } = use75Hard();
+  const { user } = useUser();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (mounted && !currentChallenge) {
+    if (user?.id) {
+      fetchChallenge(user.id);
+    }
+  }, [user?.id, fetchChallenge]);
+
+  useEffect(() => {
+    if (mounted && !currentChallenge && !isLoading && hasFetched) {
       router.push("/onboarding");
     }
-  }, [currentChallenge, mounted, router]);
+  }, [currentChallenge, mounted, isLoading, hasFetched, router]);
 
-  if (!mounted || !currentChallenge) return null;
+  if (!mounted || isLoading || !hasFetched) {
+
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center dark:bg-black">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!currentChallenge) return null;
+
 
   const currentDay = getCurrentDay();
-  const currentDayEntry = currentChallenge.entries.find(e => e.dayNumber === currentDay);
+  const workingDay = Math.min(lastCompletedDay + 1, currentDay);
+  const currentDayEntry = currentChallenge.entries.find(e => e.dayNumber === workingDay);
   const completedDays = currentChallenge.entries.filter(e => e.isDayCompleted).map(e => e.dayNumber);
+
+  const handleComplete = () => {
+    // Basic validation to ensure we're completing the right day sequentially
+    if (workingDay === lastCompletedDay + 1) {
+      completeDay(workingDay);
+      
+      // Party boomer!
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#10b981", "#34d399", "#6ee7b7", "#ffffff"]
+      });
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-20 dark:bg-black">
@@ -38,14 +75,16 @@ export default function DashboardPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-950 text-white dark:bg-emerald-500">
               <Zap className="h-5 w-5 fill-current" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">75 Hard <span className="text-emerald-500">Tracker</span></h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">75 Hard <span className="text-emerald-500 italic">Tracker</span></h1>
           </div>
           
           <div className="flex items-center gap-4">
             <button className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400">
               <Share2 className="h-5 w-5" />
             </button>
-            <UserButton />
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
           </div>
         </div>
       </header>
@@ -82,7 +121,11 @@ export default function DashboardPage() {
               <Trophy className="h-10 w-10 text-emerald-400" />
               <h3 className="text-2xl font-bold italic uppercase">Mindset is everything.</h3>
               <p className="text-sm text-zinc-400 leading-relaxed font-medium">
-                Welcome back, {user?.firstName || "Warrior"}. Today is Day {currentDay}. Don't let your future self down.
+                {workingDay < currentDay ? (
+                  <span className="text-orange-400 font-bold">CATCHING UP: DAY {workingDay} OF {currentDay}</span>
+                ) : (
+                  <>Welcome back, {user?.firstName || "Warrior"}. Today is Day {currentDay}. Don't let your future self down.</>
+                )}
               </p>
             </div>
             <button 
@@ -118,12 +161,36 @@ export default function DashboardPage() {
         {/* Daily Tasks */}
         <section className="rounded-[40px] bg-emerald-50/50 p-6 md:p-12 dark:bg-zinc-900/50 dark:border dark:border-zinc-800">
           <div className="mx-auto max-w-lg">
-             <TaskChecklist 
-               dayNumber={currentDay}
-               onComplete={() => completeDay(currentDay)}
-             />
+             {currentDayEntry?.isDayCompleted ? (
+               <div className="text-center space-y-4 py-10">
+                 <div className="mx-auto h-20 w-20 flex items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Trophy className="h-10 w-10" />
+                 </div>
+                 <h2 className="text-3xl font-bold">Day {workingDay} Finished!</h2>
+                 <p className="text-zinc-500 italic">"The only way out is through." - See you tomorrow.</p>
+               </div>
+             ) : (
+               <TaskChecklist 
+                 dayNumber={workingDay}
+                 initialTasks={currentDayEntry?.tasks.map(t => ({
+                   id: t.id,
+                   label: t.name,
+                   icon: t.id === 'water' ? <Droplets className="w-5 h-5 text-blue-500" /> :
+                        t.id === 'diet' ? <Utensils className="w-5 h-5 text-emerald-500" /> :
+                        t.id === 'workout1' ? <Dumbbell className="w-5 h-5 text-orange-500" /> :
+                        t.id === 'workout2' ? <Dumbbell className="w-5 h-5 text-purple-500" /> :
+                        t.id === 'reading' ? <BookOpen className="w-5 h-5 text-amber-500" /> :
+                        <Camera className="w-5 h-5 text-rose-500" />,
+                   completed: t.isCompleted
+                 }))}
+                 onTaskToggle={(taskId, isCompleted) => updateTask(workingDay, taskId, isCompleted)}
+                 onComplete={handleComplete}
+               />
+
+             )}
           </div>
         </section>
+
       </main>
 
       {/* Mobile Nav Overlay */}
@@ -139,4 +206,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
