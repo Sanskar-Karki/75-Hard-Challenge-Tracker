@@ -122,8 +122,9 @@ export const use75Hard = create<TrackerState>((set, get) => ({
 
       const entriesMap = new Map();
       daysData?.forEach(day => {
-        entriesMap.set(day.day_number, {
-          dayNumber: day.day_number,
+        const dayNum = Number(day.day_number);
+        entriesMap.set(dayNum, {
+          dayNumber: dayNum,
           date: day.date,
           tasks: day.tasks || [],
           waterProgress: day.water_progress || 0,
@@ -135,7 +136,8 @@ export const use75Hard = create<TrackerState>((set, get) => ({
 
       const mergedEntries = challengeData.entries.map((entry: DayEntry) => ({
         ...entry,
-        ...(entriesMap.get(entry.dayNumber) || {})
+        dayNumber: Number(entry.dayNumber),
+        ...(entriesMap.get(Number(entry.dayNumber)) || {})
       }));
 
       set({ 

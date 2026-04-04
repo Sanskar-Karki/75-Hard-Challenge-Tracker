@@ -11,7 +11,6 @@ import TaskChecklist from "@/components/dashboard/TaskChecklist";
 import WeightTracker from "@/components/dashboard/WeightTracker";
 import WeightHistory from "@/components/dashboard/WeightHistory";
 import WeightChart from "@/components/dashboard/WeightChart";
-import WeightSummaryWidget from "@/components/dashboard/WeightSummaryWidget";
 import StatsCard, { DetailedProgress } from "@/components/dashboard/StatsCard";
 import { UserButton, useUser, Show, useAuth } from "@clerk/nextjs";
 import confetti from "canvas-confetti";
@@ -36,14 +35,13 @@ export default function DashboardPage() {
   }, [user?.id, fetchChallenge]);
 
   const currentDay = getCurrentDay();
-  const firstUncompletedDay = currentChallenge?.entries.find(e => !e.isDayCompleted)?.dayNumber || currentDay;
-  const workingDay = Math.min(firstUncompletedDay, currentDay);
+  const workingDay = Math.min(lastCompletedDay + 1, currentDay) || currentDay;
 
   useEffect(() => {
-    if (workingDay && selectedDay === null) {
+    if (hasFetched && workingDay && selectedDay === null) {
       setSelectedDay(workingDay);
     }
-  }, [workingDay, selectedDay]);
+  }, [hasFetched, workingDay, selectedDay]);
 
   useEffect(() => {
     if (mounted && !currentChallenge && !isLoading && hasFetched) {
@@ -178,14 +176,15 @@ export default function DashboardPage() {
                         updateTask(activeDay, taskId, isCompleted, token || undefined);
                       }}
                       onComplete={async () => {
-                        const token = await getToken({ template: "supabase" });
-                        completeDay(activeDay, token || undefined);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                         confetti({
                           particleCount: 150,
                           spread: 70,
                           origin: { y: 0.6 },
                           colors: ["#10b981", "#34d399", "#059669"],
                         });
+                        const token = await getToken({ template: "supabase" });
+                        completeDay(activeDay, token || undefined);
                       }}
                     />
                   )}

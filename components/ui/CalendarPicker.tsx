@@ -17,18 +17,18 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
     const month = viewDate.getMonth();
     const date = new Date(year, month, 1);
     const days = [];
-    
+
     // Fill leading empty days
     const firstDay = date.getDay();
     for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
       days.push(null);
     }
-    
+
     while (date.getMonth() === month) {
       days.push(new Date(date));
       date.setDate(date.getDate() + 1);
     }
-    
+
     return days;
   }, [viewDate]);
 
@@ -74,7 +74,7 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
           <ChevronRight className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
         </button>
       </div>
-      
+
       <div className="grid grid-cols-7 gap-1 text-center mb-1">
         {["M", "T", "W", "T", "F", "S", "S"].map((day, i) => (
           <span key={i} className="text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase">
@@ -82,7 +82,7 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
           </span>
         ))}
       </div>
-      
+
       <div className="grid grid-cols-7 gap-0.5">
         {daysInMonth.map((date, i) => (
           <div key={i} className="aspect-square flex items-center justify-center">
@@ -91,13 +91,13 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
                 onClick={() => onChange(date)}
                 className={cn(
                   "w-8 h-8 text-[10px] font-extrabold rounded-lg transition-all flex items-center justify-center cursor-pointer",
-                  isSelected(date) 
-                    ? "bg-zinc-950 text-white scale-110 shadow-lg dark:bg-emerald-500 ring-2 ring-emerald-500/20" 
+                  isSelected(date)
+                    ? "bg-zinc-950 text-white scale-110 shadow-lg dark:bg-emerald-500 ring-2 ring-emerald-500/20"
                     : isTargetDate(date)
-                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50"
-                    : isToday(date)
-                    ? "bg-zinc-100 text-zinc-900 border border-zinc-200 dark:bg-zinc-800 dark:text-white"
-                    : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50"
+                      : isToday(date)
+                        ? "bg-zinc-100 text-zinc-900 border border-zinc-200 dark:bg-zinc-800 dark:text-white"
+                        : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 )}
               >
                 {date.getDate()}
@@ -108,22 +108,22 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
           </div>
         ))}
       </div>
-      
+
       <div className="mt-3 space-y-1.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em]">
           <div className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-zinc-950 dark:bg-emerald-500" />
-            <span className="text-zinc-400">Start Mission</span>
+            <span className="text-zinc-400">Start Date</span>
           </div>
           <span className="text-zinc-900 dark:text-zinc-50 font-bold">
             {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
         </div>
-        
+
         <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em]">
           <div className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/30 ring-1 ring-emerald-500/50" />
-            <span className="text-zinc-400">Target Victory</span>
+            <span className="text-zinc-400">End Date</span>
           </div>
           <span className="text-emerald-600 dark:text-emerald-400 font-bold">
             {new Date(new Date(selectedDate).getTime() + 74 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

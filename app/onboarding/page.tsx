@@ -50,9 +50,9 @@ export default function OnboardingPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-zinc-100 w-fit mx-auto dark:bg-zinc-800 dark:border-zinc-700 shadow-sm">
                 <Calendar className="h-2.5 w-2.5 text-emerald-500" />
-                <span className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300">Target: {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300">Start : {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
-              
+
               <div className="bg-white rounded-xl p-2 dark:bg-zinc-950/30">
                 <CalendarPicker selectedDate={selectedDate} onChange={setSelectedDate} />
               </div>
@@ -75,9 +75,9 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleStart}
-              className="group relative flex w-full h-12 items-center justify-center gap-3 rounded-full bg-zinc-950 text-sm font-bold text-white transition-all hover:scale-[1.01] active:scale-[0.99] overflow-hidden dark:bg-emerald-500"
+              className="group relative flex w-full h-12 items-center justify-center gap-3 rounded-full bg-zinc-950 text-sm font-bold text-white transition-all hover:scale-[1.01] active:scale-[0.99] overflow-hidden dark:bg-emerald-500 cursor-pointer"
             >
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity " />
               START MISSION
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
