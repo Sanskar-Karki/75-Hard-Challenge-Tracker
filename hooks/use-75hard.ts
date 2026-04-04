@@ -8,20 +8,20 @@ interface TrackerState {
   isLoading: boolean;
   hasFetched: boolean; // Tracks if at least one cloud sync has completed
   startChallenge: (startDate: string, userId: string) => Promise<void>;
-  updateTask: (dayNumber: number, taskId: string, isCompleted: boolean) => Promise<void>;
-  completeDay: (dayNumber: number) => Promise<void>;
+  updateTask: (dayNumber: number, taskId: string, isCompleted: boolean, token?: string) => Promise<void>;
+  updateWeight: (dayNumber: number, weight: number, token?: string) => Promise<void>;
+  completeDay: (dayNumber: number, token?: string) => Promise<void>;
   resetChallenge: () => Promise<void>;
   getCurrentDay: () => number;
   fetchChallenge: (userId: string) => Promise<void>;
 }
 
-const DEFAULT_TASKS = [
-  { id: "water", name: "Drink 1 Gallon Water", isCompleted: false, icon: "droplets" },
-  { id: "diet", name: "Follow Diet", isCompleted: false, icon: "utensils" },
-  { id: "workout1", name: "Outdoor Workout", isCompleted: false, icon: "dumbbell" },
-  { id: "workout2", name: "Second Workout", isCompleted: false, icon: "dumbbell" },
-  { id: "reading", name: "Read 10 Pages", isCompleted: false, icon: "book-open" },
-  { id: "photo", name: "Take Progress Picture", isCompleted: false, icon: "camera" },
+const DEFAULT_TASKS: Task[] = [
+  { id: 'water', name: 'Drink 4L Water', isCompleted: false, icon: 'droplet' },
+  { id: 'diet', name: 'Stick to Diet', isCompleted: false, icon: 'utensils' },
+  { id: 'workout1', name: 'Workout 1 (45min)', isCompleted: false, icon: 'dumbbell' },
+  { id: 'workout2', name: 'Workout 2 (45min)', isCompleted: false, icon: 'dumbbell' },
+  { id: 'reading', name: 'Read 10 Pages', isCompleted: false, icon: 'book' },
 ];
 
 export const use75Hard = create<TrackerState>((set, get) => ({
@@ -29,6 +29,42 @@ export const use75Hard = create<TrackerState>((set, get) => ({
   lastCompletedDay: 0,
   isLoading: true,
   hasFetched: false,
+  updateWeight: async (dayNumber: number, weight: number, token?: string) => {
+    const challenge = get().currentChallenge;
+    const supabase = createClient(token);
+    if (!challenge || !supabase) return;
+
+    const updatedEntries = challenge.entries.map((entry: DayEntry) =>
+      entry.dayNumber === dayNumber ? { ...entry, weight } : entry
+    );
+    
+    const updatedChallenge = { ...challenge, entries: updatedEntries };
+    set({ currentChallenge: updatedChallenge });
+
+    // Cloud sync logic (Dual-sync to both tables)
+    // 1. Sync to 'days' table (for fast analytics/charts)
+    const dayEntry = updatedEntries.find(e => e.dayNumber === dayNumber);
+    if (dayEntry) {
+      console.log("☁️ Syncing day update to days table...");
+      await supabase.from("days").upsert({
+        user_id: challenge.userId,
+        day_number: dayNumber,
+        tasks: dayEntry.tasks,
+        water_progress: dayEntry.waterProgress,
+        is_day_completed: dayEntry.isDayCompleted,
+        weight: weight,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "user_id,day_number" });
+    }
+
+    // 2. Sync to 'challenges' table (the main JSONB blob)
+    console.log("☁️ Syncing overall challenge blob...");
+    await supabase.from('challenges').upsert({
+      user_id: challenge.userId,
+      data: updatedChallenge,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  },
 
 
   getCurrentDay: () => {
@@ -69,7 +105,7 @@ export const use75Hard = create<TrackerState>((set, get) => ({
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .maybeSingle(); 
+      .maybeSingle();
 
     if (error) {
        console.error('Supabase Sync Error:', error.message);
@@ -78,8 +114,32 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     }
 
     if (data) {
+      const challengeData = data.data;
+      const { data: daysData } = await supabase
+        .from('days')
+        .select('*')
+        .eq('user_id', userId);
+
+      const entriesMap = new Map();
+      daysData?.forEach(day => {
+        entriesMap.set(day.day_number, {
+          dayNumber: day.day_number,
+          date: day.date,
+          tasks: day.tasks || [],
+          waterProgress: day.water_progress || 0,
+          isDayCompleted: day.is_day_completed || false,
+          weight: day.weight || undefined,
+          notes: day.notes || ''
+        });
+      });
+
+      const mergedEntries = challengeData.entries.map((entry: DayEntry) => ({
+        ...entry,
+        ...(entriesMap.get(entry.dayNumber) || {})
+      }));
+
       set({ 
-        currentChallenge: data.data,
+        currentChallenge: { ...challengeData, entries: mergedEntries },
         lastCompletedDay: data.last_completed_day,
         isLoading: false,
         hasFetched: true
@@ -133,10 +193,10 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     }
   },
 
-  updateTask: async (dayNumber, taskId, isCompleted) => {
-    const supabase = createClient();
+  updateTask: async (dayNumber, taskId, isCompleted, token?: string) => {
+    const supabase = createClient(token);
     const { currentChallenge, lastCompletedDay } = get();
-    if (!currentChallenge) return;
+    if (!currentChallenge || !supabase) return;
 
     if (dayNumber > lastCompletedDay + 1) return;
 
@@ -150,28 +210,28 @@ export const use75Hard = create<TrackerState>((set, get) => ({
       return entry;
     });
 
-    const updatedChallenge: Challenge = {
-      ...currentChallenge,
-      entries: updatedEntries,
-    };
-
+    const updatedChallenge = { ...currentChallenge, entries: updatedEntries };
     set({ currentChallenge: updatedChallenge });
 
-    if (supabase) {
-      const { error } = await supabase.from('challenges').upsert({
+    // Sync individual day to 'days' table
+    const dayEntry = updatedEntries.find(e => e.dayNumber === dayNumber);
+    if (dayEntry) {
+      await supabase.from('days').upsert({
         user_id: currentChallenge.userId,
-        data: updatedChallenge,
-        last_completed_day: lastCompletedDay,
+        day_number: dayNumber,
+        tasks: dayEntry.tasks,
+        water_progress: dayEntry.waterProgress,
+        is_day_completed: dayEntry.isDayCompleted,
+        weight: dayEntry.weight,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-      if (error) console.error('❌ Supabase Async Error:', error.message);
+      }, { onConflict: 'user_id,day_number' });
     }
   },
 
-  completeDay: async (dayNumber) => {
-    const supabase = createClient();
+  completeDay: async (dayNumber, token?: string) => {
+    const supabase = createClient(token);
     const { currentChallenge, lastCompletedDay } = get();
-    if (!currentChallenge) return;
+    if (!currentChallenge || !supabase) return;
 
     if (dayNumber !== lastCompletedDay + 1) return;
 
@@ -182,34 +242,44 @@ export const use75Hard = create<TrackerState>((set, get) => ({
       return entry;
     });
 
-    const updatedChallenge: Challenge = {
+    const updatedChallenge = {
       ...currentChallenge,
       entries: updatedEntries,
-      status: (dayNumber === 75 ? "COMPLETED" : "IN_PROGRESS") as "COMPLETED" | "IN_PROGRESS",
+      status: (dayNumber === 75 ? "COMPLETED" : "IN_PROGRESS"),
     };
 
     set({
       lastCompletedDay: dayNumber,
-      currentChallenge: updatedChallenge,
+      currentChallenge: updatedChallenge as any,
     });
 
-    if (supabase) {
-      const { error } = await supabase.from('challenges').upsert({
+    // Sync individual day to 'days' table
+    const dayEntry = updatedEntries.find(e => e.dayNumber === dayNumber);
+    if (dayEntry) {
+      await supabase.from('days').upsert({
         user_id: currentChallenge.userId,
-        data: updatedChallenge,
-        last_completed_day: dayNumber,
+        day_number: dayNumber,
+        tasks: dayEntry.tasks,
+        water_progress: dayEntry.waterProgress,
+        is_day_completed: true,
+        weight: dayEntry.weight,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-      if (error) console.error('❌ Supabase Completion Error:', error.message);
+      }, { onConflict: 'user_id,day_number' });
     }
+
+    // Also update overall status in challenges table
+    await supabase.from('challenges').update({
+      last_completed_day: dayNumber,
+      updated_at: new Date().toISOString()
+    }).eq('user_id', currentChallenge.userId);
   },
 
   resetChallenge: async () => {
     const supabase = createClient();
     const { currentChallenge } = get();
     if (currentChallenge && supabase) {
-      const { error } = await supabase.from('challenges').delete().eq('user_id', currentChallenge.userId);
-      if (error) console.error('Supabase Reset Error:', error.message);
+      await supabase.from('challenges').delete().eq('user_id', currentChallenge.userId);
+      await supabase.from('days').delete().eq('user_id', currentChallenge.userId);
     }
     set({ currentChallenge: null, lastCompletedDay: 0 });
   },

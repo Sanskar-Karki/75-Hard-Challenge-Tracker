@@ -12,7 +12,7 @@ export interface DayEntry {
   waterProgress: number; // 0-1 (normalized)
   isDayCompleted: boolean;
   notes?: string;
-  photoUrl?: string;
+  weight?: number;
 }
 
 export interface Challenge {

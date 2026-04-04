@@ -30,7 +30,7 @@ export default function DayDotGrid({
             whileTap={{ scale: isLocked ? 1 : 0.95 }}
             onClick={() => !isLocked && onDayClick?.(day)}
             className={cn(
-              "relative group flex aspect-square h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 md:h-10 md:w-10 md:text-xs",
+              "relative group flex aspect-square h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300 md:h-8 md:w-8 md:text-xs",
               isCompleted && "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/20",
               isCurrent && "border-2 border-emerald-500 bg-white text-emerald-600 shadow-[0_0_15px_-3px_rgba(16,185,129,0.5)] dark:bg-zinc-900 dark:text-emerald-400",
               isLocked && "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed grayscale opacity-30",
@@ -38,7 +38,7 @@ export default function DayDotGrid({
             )}
           >
             {isLocked ? (
-              <span className="text-[8px] opacity-40">🔒</span>
+              <span className="text-[16px] opacity-40">🔒</span>
             ) : day}
 
             {isCurrent && (

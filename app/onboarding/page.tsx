@@ -46,7 +46,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* Compact Mission Card */}
-          <div className="bg-zinc-50 border border-zinc-200/50 rounded-[24px] p-4 space-y-4 dark:bg-zinc-900/50 dark:border-zinc-800 shadow-xl shadow-zinc-200/50">
+          <div className="bg-zinc-50 border border-zinc-200/50 rounded-[24px] p-4 space-y-4 dark:bg-zinc-900/50 dark:border-zinc-800 shadow-shallow-inner transition-shadow">
             <div className="space-y-3">
               <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-zinc-100 w-fit mx-auto dark:bg-zinc-800 dark:border-zinc-700 shadow-sm">
                 <Calendar className="h-2.5 w-2.5 text-emerald-500" />

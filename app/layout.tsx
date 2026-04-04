@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { AuthSync } from "@/components/auth/AuthSync";
 
@@ -39,10 +40,16 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ClerkProvider>
           <AuthSync />
-          {children}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>
   );
 }
-

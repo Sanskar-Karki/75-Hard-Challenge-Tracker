@@ -47,7 +47,7 @@ export default function TaskChecklist({
   const toggleTask = (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
-    
+
     const newCompleted = !task.completed;
     onTaskToggle?.(id, newCompleted);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: newCompleted } : t));
@@ -55,7 +55,7 @@ export default function TaskChecklist({
 
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="w-full max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Day {dayNumber}</h2>
@@ -67,13 +67,24 @@ export default function TaskChecklist({
       </div>
 
       {/* Progress Bar */}
-      <div className="relative h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden dark:bg-zinc-800">
+      <div className="relative h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden dark:bg-zinc-800 shadow-inner">
+        {/* Main Progress Bar */}
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progressPercent}%` }}
-          transition={{ duration: 0.5, ease: "circOut" }}
-          className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-        />
+          transition={{ type: "spring", stiffness: 45, damping: 15 }}
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full z-10"
+        >
+          {/* Subtle Shimmer */}
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:24px_24px] animate-[progress-stripe_1s_linear_infinite]" />
+
+          {/* Edge Sparkle */}
+          <motion.div
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="absolute right-0 top-0 bottom-0 w-2 bg-white/50 blur-sm rounded-full"
+          />
+        </motion.div>
       </div>
 
       {/* Checklist */}
@@ -87,8 +98,8 @@ export default function TaskChecklist({
             onClick={() => toggleTask(task.id)}
             className={cn(
               "group relative flex w-full items-center gap-4 rounded-3xl p-4 transition-all duration-300",
-              task.completed 
-                ? "bg-zinc-50 dark:bg-zinc-900/50" 
+              task.completed
+                ? "bg-zinc-50 dark:bg-zinc-900/50"
                 : "bg-white border border-zinc-100 hover:border-emerald-200 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
             )}
           >
@@ -98,7 +109,7 @@ export default function TaskChecklist({
             )}>
               {task.completed ? <Check className="w-5 h-5 stroke-[3px]" /> : task.icon}
             </div>
-            
+
             <div className="flex flex-1 items-center justify-between overflow-hidden">
               <span className={cn(
                 "text-left font-medium truncate transition-all",
@@ -106,11 +117,11 @@ export default function TaskChecklist({
               )}>
                 {task.label}
               </span>
-              
+
               <div className={cn(
                 "h-6 w-6 rounded-lg border-2 transition-all",
-                task.completed 
-                  ? "bg-emerald-500 border-emerald-500" 
+                task.completed
+                  ? "bg-emerald-500 border-emerald-500"
                   : "border-zinc-200 group-hover:border-emerald-300 dark:border-zinc-700"
               )}>
                 {task.completed && <Check className="w-4 h-4 text-white p-0.5" />}
