@@ -71,21 +71,16 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     const { currentChallenge } = get();
     if (!currentChallenge) return 1;
     
-    // Offset for Nepal Timezone (UTC +5:45)
-    const NEPAL_OFFSET = 5.75 * 60 * 60 * 1000;
-    
-    // Start date at midnight Nepal time
+    // Normalize both dates to midnight local time for pure day counting
     const startDate = new Date(currentChallenge.startDate);
-    const startNepal = new Date(startDate.getTime() + NEPAL_OFFSET);
-    startNepal.setUTCHours(0, 0, 0, 0);
-
-    // Current time in Nepal
+    startDate.setHours(0, 0, 0, 0);
+    
     const now = new Date();
-    const nowNepal = new Date(now.getTime() + NEPAL_OFFSET);
-
-    // Difference in days
-    const diff = nowNepal.getTime() - startNepal.getTime();
-    const day = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Difference in days (1000 * 60 * 60 * 24 = 86,400,000 ms per day)
+    const diffTime = today.getTime() - startDate.getTime();
+    const day = Math.floor(diffTime / 86400000) + 1;
     
     return Math.min(Math.max(day, 1), 75);
   },
