@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Flame, Target, Calendar, Trophy, Zap, Share2, Droplets, Utensils, Dumbbell, BookOpen, Camera, Weight, TrendingUp } from "lucide-react";
+import { Flame, Target, Calendar, Trophy, Zap, Share2, Droplets, Utensils, Dumbbell, BookOpen, Camera, Weight, TrendingUp, Clock } from "lucide-react";
 import { use75Hard } from "@/hooks/use-75hard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,9 @@ export default function DashboardPage() {
   }, [user?.id, fetchChallenge]);
 
   const currentDay = getCurrentDay();
-  const workingDay = Math.min(lastCompletedDay + 1, currentDay) || currentDay;
+  // currentDay=0 means start date hasn't arrived yet
+  const challengeStarted = currentDay > 0;
+  const workingDay = challengeStarted ? (Math.min(lastCompletedDay + 1, currentDay) || currentDay) : 0;
 
   useEffect(() => {
     if (hasFetched && workingDay && selectedDay === null) {
@@ -128,19 +130,48 @@ export default function DashboardPage() {
               <div className="rounded-[40px] bg-white p-8 border border-zinc-200 shadow-shallow-inner dark:bg-zinc-900 dark:border-zinc-800">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 italic">75 Day <span className="text-emerald-500">Roadmap</span></h2>
-                  <p className="text-sm text-zinc-500 font-medium">Unlocked based on device time & consistency.</p>
+                  <p className="text-sm text-zinc-500 font-medium">Unlocked based on device time & date.</p>
                 </div>
                 <DayDotGrid
                   currentDay={currentDay}
                   completedDays={completedDays}
-                  onDayClick={setSelectedDay}
+                  entries={currentChallenge?.entries || []}
+                  onDayClick={(day) => { if (day > 0) setSelectedDay(day); }}
                 />
               </div>
 
               {/* 📍 Row level 2: Daily Tasks Section */}
               <section className="rounded-[40px] bg-emerald-50/50 p-6 md:p-12 dark:bg-zinc-900/50 dark:border dark:border-zinc-800 border border-zinc-200 shadow-shallow-inner transition-shadow">
                 <div className="mx-auto max-w-xl">
-                  {isDayCompleted ? (
+                  {!challengeStarted ? (
+                    /* Challenge hasn't started yet — show countdown */
+                    <div className="rounded-[40px] bg-zinc-50 p-8 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
+                      <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(251,191,36,0.3)]">
+                        <Clock className="h-10 w-10 text-white" />
+                      </div>
+                      <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter text-zinc-900 dark:text-zinc-50 mb-2">NOT STARTED YET</h2>
+                      <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 italic max-w-xs mx-auto">
+                        Your challenge begins on{" "}
+                        <span className="text-amber-600 dark:text-amber-400 not-italic">
+                          {new Date(currentChallenge.startDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        . All days are locked until then.
+                      </p>
+                      {(() => {
+                        const startDate = new Date(currentChallenge.startDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const daysUntilStart = Math.ceil((startDate.getTime() - today.getTime()) / 86400000);
+                        return (
+                          <div className="mt-6 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                            <span className="text-3xl font-black text-amber-600 dark:text-amber-400">{daysUntilStart}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">{daysUntilStart === 1 ? 'day' : 'days'} to go</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : isDayCompleted ? (
                     <div className="rounded-[40px] bg-zinc-50 p-8 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
                       <div className="h-20 w-20 rounded-full bg-emerald-500 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
                         <Trophy className="h-10 w-10 text-white" />

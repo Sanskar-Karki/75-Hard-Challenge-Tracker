@@ -82,7 +82,9 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     const diffTime = today.getTime() - startDate.getTime();
     const day = Math.floor(diffTime / 86400000) + 1;
     
-    return Math.min(Math.max(day, 1), 75);
+    // Return 0 if day is <= 0 (start date hasn't arrived yet)
+    // This keeps all days locked until the challenge actually begins
+    return Math.min(Math.max(day, 0), 75);
   },
 
   fetchChallenge: async (userId) => {
@@ -192,10 +194,11 @@ export const use75Hard = create<TrackerState>((set, get) => ({
 
   updateTask: async (dayNumber, taskId, isCompleted, token?: string) => {
     const supabase = createClient(token);
-    const { currentChallenge, lastCompletedDay } = get();
+    const { currentChallenge } = get();
     if (!currentChallenge || !supabase) return;
 
-    if (dayNumber > lastCompletedDay + 1) return;
+    // Allow task updates on any day that's unlocked (based on device date)
+    // No longer restricted to consecutive days only
 
     const updatedEntries = currentChallenge.entries.map((entry) => {
       if (entry.dayNumber === dayNumber) {
@@ -230,7 +233,7 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     const { currentChallenge, lastCompletedDay } = get();
     if (!currentChallenge || !supabase) return;
 
-    if (dayNumber !== lastCompletedDay + 1) return;
+    // Allow completing any unlocked day (no longer restricted to consecutive days)
 
     const updatedEntries = currentChallenge.entries.map((entry) => {
       if (entry.dayNumber === dayNumber) {
@@ -246,7 +249,7 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     };
 
     set({
-      lastCompletedDay: dayNumber,
+      lastCompletedDay: Math.max(lastCompletedDay, dayNumber),
       currentChallenge: updatedChallenge as any,
     });
 
@@ -266,7 +269,7 @@ export const use75Hard = create<TrackerState>((set, get) => ({
 
     // Also update overall status in challenges table
     await supabase.from('challenges').update({
-      last_completed_day: dayNumber,
+      last_completed_day: Math.max(lastCompletedDay, dayNumber),
       updated_at: new Date().toISOString()
     }).eq('user_id', currentChallenge.userId);
   },
