@@ -16,7 +16,8 @@ export default function OnboardingPage() {
 
   const handleStart = async () => {
     if (!user) return;
-    await startChallenge(selectedDate.toISOString(), user.id);
+    const email = user.emailAddresses[0]?.emailAddress;
+    await startChallenge(selectedDate.toISOString(), user.id, user.fullName || undefined, user.imageUrl || undefined, email || undefined);
     router.push("/dashboard");
   };
 

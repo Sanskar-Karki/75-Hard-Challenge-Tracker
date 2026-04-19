@@ -7,13 +7,14 @@ interface TrackerState {
   lastCompletedDay: number;
   isLoading: boolean;
   hasFetched: boolean; // Tracks if at least one cloud sync has completed
-  startChallenge: (startDate: string, userId: string) => Promise<void>;
+  startChallenge: (startDate: string, userId: string, userName?: string, userImage?: string, userEmail?: string) => Promise<void>;
   updateTask: (dayNumber: number, taskId: string, isCompleted: boolean, token?: string) => Promise<void>;
   updateWeight: (dayNumber: number, weight: number, token?: string) => Promise<void>;
   completeDay: (dayNumber: number, token?: string) => Promise<void>;
   resetChallenge: () => Promise<void>;
   getCurrentDay: () => number;
-  fetchChallenge: (userId: string) => Promise<void>;
+  fetchChallenge: (userId: string, userName?: string, userImage?: string, userEmail?: string) => Promise<void>;
+  fetchLeaderboard: () => Promise<any[]>;
 }
 
 const DEFAULT_TASKS: Task[] = [
@@ -87,7 +88,7 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     return Math.min(Math.max(day, 0), 75);
   },
 
-  fetchChallenge: async (userId) => {
+  fetchChallenge: async (userId, userName, userImage, userEmail) => {
     const supabase = createClient();
     if (!supabase) {
       set({ isLoading: false, hasFetched: true });
@@ -111,7 +112,24 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     }
 
     if (data) {
-      const challengeData = data.data;
+      const challengeData = { 
+        ...data.data, 
+        userName: userName || data.data.userName, 
+        userImage: userImage || data.data.userImage,
+        userEmail: userEmail || data.data.userEmail
+      };
+      
+      // Update user info in the table using dedicated columns
+      if (userName || userImage || userEmail) {
+        await supabase.from('challenges').update({
+          user_name: userName,
+          user_email: userEmail,
+          user_image: userImage,
+          data: challengeData,
+          updated_at: new Date().toISOString()
+        }).eq('user_id', userId);
+      }
+
       const { data: daysData } = await supabase
         .from('days')
         .select('*')
@@ -150,7 +168,29 @@ export const use75Hard = create<TrackerState>((set, get) => ({
 
   },
 
-  startChallenge: async (startDate, userId) => {
+  fetchLeaderboard: async () => {
+    console.log("🏅 Fetching leaderboard from dedicated columns...");
+    const supabase = createClient();
+    if (!supabase) return [];
+    
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('user_id, last_completed_day, user_name, user_image, user_email, updated_at')
+      .order('last_completed_day', { ascending: false })
+      .limit(20);
+      
+    if (error) {
+      console.error('❌ Fetch Leaderboard Error:', error.message);
+      return [];
+    }
+    
+    return (data || []).map(item => ({
+      ...item,
+      user_name: item.user_name || "Warrior"
+    }));
+  },
+
+  startChallenge: async (startDate, userId, userName, userImage, userEmail) => {
     const supabase = createClient();
     const entries: DayEntry[] = Array.from({ length: 75 }, (_, i) => ({
       dayNumber: i + 1,
@@ -163,6 +203,9 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     const newChallenge: Challenge = {
       id: crypto.randomUUID(),
       userId,
+      userName,
+      userImage,
+      userEmail,
       startDate,
       currentDay: 1,
       status: "IN_PROGRESS",
@@ -181,6 +224,9 @@ export const use75Hard = create<TrackerState>((set, get) => ({
         user_id: userId,
         data: newChallenge,
         last_completed_day: 0,
+        user_name: userName,
+        user_email: userEmail,
+        user_image: userImage,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
       

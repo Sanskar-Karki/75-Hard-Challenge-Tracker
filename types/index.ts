@@ -18,6 +18,9 @@ export interface DayEntry {
 export interface Challenge {
   id: string;
   userId: string;
+  userName?: string;
+  userImage?: string;
+  userEmail?: string;
   startDate: string;
   currentDay: number;
   status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';

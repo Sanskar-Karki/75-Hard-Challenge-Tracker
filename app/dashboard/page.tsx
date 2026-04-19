@@ -16,23 +16,45 @@ import { UserButton, useUser, Show, useAuth } from "@clerk/nextjs";
 import confetti from "canvas-confetti";
 import ThemeToggle from "@/components/dashboard/ThemeToggle";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Leaderboard from "@/components/dashboard/Leaderboard";
 
 export default function DashboardPage() {
-  const { currentChallenge, lastCompletedDay, getCurrentDay, completeDay, updateTask, updateWeight, resetChallenge, fetchChallenge, isLoading, hasFetched } = use75Hard();
+  const { currentChallenge, lastCompletedDay, getCurrentDay, completeDay, updateTask, updateWeight, resetChallenge, fetchChallenge, fetchLeaderboard, isLoading, hasFetched } = use75Hard();
   const { user } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'progress'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'progress' | 'leaderboard'>('overview');
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     if (user?.id) {
-      fetchChallenge(user.id);
+      const email = user.emailAddresses[0]?.emailAddress;
+      fetchChallenge(user.id, user.fullName || undefined, user.imageUrl || undefined, email || undefined);
     }
-  }, [user?.id, fetchChallenge]);
+  }, [user?.id, user?.fullName, user?.imageUrl, user?.emailAddresses, fetchChallenge]);
+
+  useEffect(() => {
+    // ⚔️ Arena Activation Logic
+    if (activeTab === 'leaderboard' && user?.id) {
+      const loadLeaderboard = async () => {
+        try {
+          setIsLeaderboardLoading(true);
+          const data = await fetchLeaderboard();
+          setLeaderboardData(data || []);
+        } catch (err) {
+          console.error("Critical failure fetching arena data:", err);
+        } finally {
+          setIsLeaderboardLoading(false);
+        }
+      };
+      loadLeaderboard();
+    }
+  }, [activeTab, user?.id, fetchLeaderboard]);
 
   const currentDay = getCurrentDay();
   // currentDay=0 means start date hasn't arrived yet
@@ -103,6 +125,15 @@ export default function DashboardPage() {
                 )}
               >
                 Progress
+              </button>
+              <button
+                onClick={() => setActiveTab('leaderboard')}
+                className={cn(
+                  "h-7 px-4 rounded-full text-[9px] cursor-pointer font-black uppercase tracking-widest transition-all",
+                  activeTab === 'leaderboard' ? "bg-emerald-500 text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-white" : "text-zinc-400 hover:text-zinc-600"
+                )}
+              >
+                Leaderboard
               </button>
             </div>
             <ThemeToggle />
@@ -269,7 +300,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'progress' ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
             <WeightChart entries={currentChallenge?.entries || []} />
 
@@ -334,6 +365,21 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-5 duration-500">
+             <div className="mb-8 text-center max-w-lg mx-auto">
+                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-zinc-900 dark:text-zinc-50 mb-2">THE LEADERBOARD</h2>
+                <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest italic">Facing the giants. Survival of the disciplined.</p>
+             </div>
+             {isLeaderboardLoading ? (
+               <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">Syncing Arena...</p>
+               </div>
+             ) : (
+               <Leaderboard data={leaderboardData} currentUserId={user?.id} />
+             )}
+          </div>
         )}
       </main>
 
@@ -367,6 +413,15 @@ export default function DashboardPage() {
           )}
         >
           <TrendingUp className="h-6 w-6" />
+        </button>
+        <button
+          onClick={() => setActiveTab('leaderboard')}
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full transition-all",
+            activeTab === 'leaderboard' ? "bg-white/10 text-white" : "text-zinc-400"
+          )}
+        >
+          <Trophy className="h-6 w-6" />
         </button>
       </nav>
     </div>
