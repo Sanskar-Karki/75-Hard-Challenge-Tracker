@@ -6,7 +6,7 @@ export interface Task {
 }
 
 export interface DayEntry {
-  dayNumber: number; // 1-75
+  dayNumber: number; // 1..totalDays
   date: string;
   tasks: Task[];
   waterProgress: number; // 0-1 (normalized)
@@ -25,6 +25,22 @@ export interface Challenge {
   currentDay: number;
   status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
   entries: DayEntry[];
+  totalDays: number;
+  tasks: Task[]; // Template of tasks (id, name, icon) used to seed each day
+  title?: string; // Optional user-defined challenge title
 }
 
-export type TaskType = 'water' | 'diet' | 'workout1' | 'workout2' | 'reading' | 'photo';
+export type TaskIconId =
+  | 'droplet'
+  | 'utensils'
+  | 'dumbbell'
+  | 'book'
+  | 'camera'
+  | 'target'
+  | 'pencil'
+  | 'sparkles'
+  | 'clock'
+  | 'heart'
+  | 'sun'
+  | 'moon'
+  | 'check';

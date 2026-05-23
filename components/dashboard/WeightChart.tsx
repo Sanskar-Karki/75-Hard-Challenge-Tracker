@@ -8,13 +8,22 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  TooltipProps 
 } from "recharts";
 import { DayEntry } from "@/types";
 import { cn } from "@/lib/utils";
 
 // 🛡️ Custom Modern Tooltip with Glassmorphism
-const CustomTooltip = ({ active, payload, label }: any) => {
+type WeightTooltipPayload = { value: number | string };
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: WeightTooltipPayload[];
+  label?: string | number;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-2xl bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-2xl ring-1 ring-black/5">
@@ -31,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export default function WeightChart({ entries, className }: { entries: DayEntry[], className?: string }) {
+export default function WeightChart({ entries, totalDays, className }: { entries: DayEntry[], totalDays: number, className?: string }) {
   // Filter and sort the data for the chart
   const chartData = entries
     .filter(e => e.weight !== undefined && e.weight !== null)
@@ -57,7 +66,7 @@ export default function WeightChart({ entries, className }: { entries: DayEntry[
         <h2 className="text-xl font-black italic uppercase tracking-tight text-zinc-900 dark:text-zinc-50 leading-none">
           Weight <span className="text-indigo-500">Flux</span>
         </h2>
-        <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-1">75-DAY TRANSFORMATION MAP</p>
+        <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-1">{totalDays}-DAY TRANSFORMATION MAP</p>
       </div>
 
       <div className="h-[280px] w-full">

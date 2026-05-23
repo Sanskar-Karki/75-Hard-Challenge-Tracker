@@ -1,14 +1,15 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Circle, Droplets, Utensils, Dumbbell, BookOpen, Camera, Play } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { renderTaskIcon } from "@/lib/task-icons";
 
-interface TaskItem {
+export interface TaskItem {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  iconId: string;
   completed: boolean;
 }
 
@@ -19,13 +20,12 @@ interface TaskChecklistProps {
   onComplete?: () => void;
 }
 
-const DEFAULT_TASKS = [
-  { id: "water", label: "Drink 1 Gallon Water", icon: <Droplets className="w-5 h-5 text-blue-500" />, completed: false },
-  { id: "diet", label: "Follow Diet (No Cheat Meals)", icon: <Utensils className="w-5 h-5 text-emerald-500" />, completed: false },
-  { id: "workout1", label: "Outdoor Workout (45 min)", icon: <Dumbbell className="w-5 h-5 text-orange-500" />, completed: false },
-  { id: "workout2", label: "Second Workout (45 min)", icon: <Dumbbell className="w-5 h-5 text-purple-500" />, completed: false },
-  { id: "reading", label: "Read 10 Pages", icon: <BookOpen className="w-5 h-5 text-amber-500" />, completed: false },
-  { id: "photo", label: "Take Progress Picture", icon: <Camera className="w-5 h-5 text-rose-500" />, completed: false },
+const DEFAULT_TASKS: TaskItem[] = [
+  { id: "water", label: "Drink 1 Gallon Water", iconId: "droplet", completed: false },
+  { id: "diet", label: "Follow Diet (No Cheat Meals)", iconId: "utensils", completed: false },
+  { id: "workout1", label: "Outdoor Workout (45 min)", iconId: "dumbbell", completed: false },
+  { id: "workout2", label: "Indoor Workout (45 min)", iconId: "dumbbell", completed: false },
+  { id: "reading", label: "Read 10 Pages", iconId: "book", completed: false },
 ];
 
 export default function TaskChecklist({
@@ -55,14 +55,14 @@ export default function TaskChecklist({
 
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
+    <div className="w-full max-w-2xl mx-auto space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Day {dayNumber}</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 sm:text-2xl">Day {dayNumber}</h2>
           <p className="text-sm text-zinc-500">{tasks.length - completedCount} tasks remaining today</p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
-          <span className="text-xl font-bold">{Math.round(progressPercent)}%</span>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 sm:h-12 sm:w-12">
+          <span className="text-lg font-bold sm:text-xl">{Math.round(progressPercent)}%</span>
         </div>
       </div>
 
@@ -97,17 +97,17 @@ export default function TaskChecklist({
             transition={{ delay: index * 0.05 }}
             onClick={() => toggleTask(task.id)}
             className={cn(
-              "group relative flex w-full items-center gap-4 rounded-3xl p-4 transition-all duration-300",
+              "group relative flex w-full items-center gap-3 rounded-2xl p-3 transition-all duration-300 cursor-pointer sm:gap-4 sm:rounded-3xl sm:p-4",
               task.completed
                 ? "bg-zinc-50 dark:bg-zinc-900/50"
                 : "bg-white border border-zinc-100 hover:border-emerald-200 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
             )}
           >
             <div className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors",
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors sm:h-10 sm:w-10 sm:rounded-2xl",
               task.completed ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40" : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800"
             )}>
-              {task.completed ? <Check className="w-5 h-5 stroke-[3px]" /> : task.icon}
+              {task.completed ? <Check className="w-5 h-5 stroke-[3px]" /> : renderTaskIcon(task.iconId)}
             </div>
 
             <div className="flex flex-1 items-center justify-between overflow-hidden">
@@ -140,7 +140,7 @@ export default function TaskChecklist({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onComplete}
-            className="flex w-full items-center justify-center gap-3 rounded-full bg-zinc-950 py-5 text-lg font-bold text-white shadow-xl shadow-zinc-200 transition-all dark:bg-emerald-600 dark:shadow-emerald-900/20"
+            className="flex w-full items-center justify-center gap-3 rounded-full bg-zinc-950 py-4 text-base font-bold text-white shadow-xl shadow-zinc-200 transition-all dark:bg-emerald-600 dark:shadow-emerald-900/20 cursor-pointer sm:py-5 sm:text-lg"
           >
             Complete Day {dayNumber} 🎉
           </motion.button>

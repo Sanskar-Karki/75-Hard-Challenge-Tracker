@@ -28,11 +28,10 @@ export default function Home() {
 
           <div className="space-y-4">
             <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter leading-none uppercase">
-              75 HARD <br /> 
-              <span className="text-emerald-500 not-italic">TRACKER</span>
+              ASCEND
             </h1>
             <p className="text-xl md:text-2xl font-medium text-zinc-500 max-w-lg mx-auto">
-              Build mental toughness with the world's most disciplined cloud-synced platform.
+              Build consistency with a disciplined, cloud-synced challenge platform.
             </p>
           </div>
 

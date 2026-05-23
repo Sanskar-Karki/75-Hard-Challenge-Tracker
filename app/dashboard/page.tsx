@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Flame, Target, Calendar, Trophy, Zap, Share2, Droplets, Utensils, Dumbbell, BookOpen, Camera, Weight, TrendingUp, Clock } from "lucide-react";
+import { Flame, Target, Calendar, Trophy, Zap, TrendingUp, Clock, LayoutDashboard } from "lucide-react";
 import { use75Hard } from "@/hooks/use-75hard";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +15,8 @@ import { UserButton, useUser, Show, useAuth } from "@clerk/nextjs";
 import confetti from "canvas-confetti";
 import ThemeToggle from "@/components/dashboard/ThemeToggle";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import Leaderboard from "@/components/dashboard/Leaderboard";
+import Leaderboard, { type LeaderboardEntry } from "@/components/dashboard/Leaderboard";
+import AscendLoader from "@/components/ui/AscendLoader";
 
 export default function DashboardPage() {
   const { currentChallenge, lastCompletedDay, getCurrentDay, completeDay, updateTask, updateWeight, resetChallenge, fetchChallenge, fetchLeaderboard, isLoading, hasFetched } = use75Hard();
@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'progress' | 'leaderboard'>('overview');
-  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
   useEffect(() => {
@@ -75,38 +75,34 @@ export default function DashboardPage() {
 
   if (!mounted || isLoading || !hasFetched) {
 
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center dark:bg-black">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-      </div>
-    );
+    return <AscendLoader fullScreen label="Syncing your challenge" />;
   }
 
   if (!currentChallenge) return null;
 
   const activeDay = selectedDay || workingDay;
   const currentDayEntry = currentChallenge?.entries.find(e => e.dayNumber === activeDay);
-  const startWeight = currentChallenge?.entries.find(e => e.weight !== undefined)?.weight;
   const latestWeight = currentDayEntry?.weight;
-  const weightDelta = (startWeight && latestWeight) ? (latestWeight - startWeight).toFixed(1) : "0.0";
   const completedDays = currentChallenge?.entries.filter(e => e.isDayCompleted).map(e => e.dayNumber) || [];
   const isDayCompleted = currentDayEntry?.isDayCompleted || false;
+  const totalDays = currentChallenge.totalDays || currentChallenge.entries.length || 75;
+  const challengeTitle = currentChallenge.title?.trim() || `${totalDays}-Day Challenge`;
 
   return (
-    <div className="min-h-screen bg-[#ECECEC] pb-20 dark:bg-black">
+    <div className="min-h-screen bg-[#ECECEC] pb-24 dark:bg-black">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 bg-[#ECECEC]/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-black/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-6">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-950 text-white dark:bg-emerald-500">
               <Zap className="h-5 w-5 fill-current" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">75 Hard <span className="text-emerald-500 italic">Tracker</span></h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Ascend</h1>
           </div>
 
           <div className="flex-1" />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex h-9 items-center gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800 hidden sm:flex">
               <button
                 onClick={() => setActiveTab('overview')}
@@ -144,10 +140,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10 space-y-12 pb-24">
+      <main className="mx-auto max-w-5xl px-4 py-6 space-y-8 pb-28 sm:px-6 sm:py-10 sm:space-y-12">
         {/* 🏆 Full-Width Overall Progress */}
         <section className="w-full">
-          <DetailedProgress totalDays={75} completedDays={lastCompletedDay} />
+          <DetailedProgress totalDays={totalDays} completedDays={lastCompletedDay} />
         </section>
 
         {/* 🏗️ Main Dashboard Grid */}
@@ -157,26 +153,28 @@ export default function DashboardPage() {
             {/* Left Side: Long-term & Daily Work */}
             <div className="lg:col-span-2 space-y-8">
 
-              {/* 📍 Row level 1: 75 Day Roadmap */}
-              <div className="rounded-[40px] bg-white p-8 border border-zinc-200 shadow-shallow-inner dark:bg-zinc-900 dark:border-zinc-800">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 italic">75 Day <span className="text-emerald-500">Roadmap</span></h2>
+              {/* 📍 Row level 1: Challenge Roadmap */}
+              <div className="rounded-[28px] bg-white p-4 border border-zinc-200 shadow-shallow-inner dark:bg-zinc-900 dark:border-zinc-800 sm:rounded-[40px] sm:p-8">
+                <div className="mb-5 sm:mb-6">
+                  <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 italic sm:text-2xl">
+                    {challengeTitle} <span className="text-emerald-500">Roadmap</span>
+                  </h2>
                   <p className="text-sm text-zinc-500 font-medium">Unlocked based on device time & date.</p>
                 </div>
                 <DayDotGrid
                   currentDay={currentDay}
+                  totalDays={totalDays}
                   completedDays={completedDays}
-                  entries={currentChallenge?.entries || []}
                   onDayClick={(day) => { if (day > 0) setSelectedDay(day); }}
                 />
               </div>
 
               {/* 📍 Row level 2: Daily Tasks Section */}
-              <section className="rounded-[40px] bg-emerald-50/50 p-6 md:p-12 dark:bg-zinc-900/50 dark:border dark:border-zinc-800 border border-zinc-200 shadow-shallow-inner transition-shadow">
+              <section className="rounded-[28px] bg-emerald-50/50 p-4 sm:p-6 md:p-12 dark:bg-zinc-900/50 dark:border dark:border-zinc-800 border border-zinc-200 shadow-shallow-inner transition-shadow sm:rounded-[40px]">
                 <div className="mx-auto max-w-xl">
                   {!challengeStarted ? (
                     /* Challenge hasn't started yet — show countdown */
-                    <div className="rounded-[40px] bg-zinc-50 p-8 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
+                    <div className="rounded-[28px] bg-zinc-50 p-6 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-14 sm:py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700 sm:rounded-[40px] sm:p-8">
                       <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(251,191,36,0.3)]">
                         <Clock className="h-10 w-10 text-white" />
                       </div>
@@ -203,11 +201,11 @@ export default function DashboardPage() {
                       })()}
                     </div>
                   ) : isDayCompleted ? (
-                    <div className="rounded-[40px] bg-zinc-50 p-8 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
+                    <div className="rounded-[28px] bg-zinc-50 p-6 dark:bg-zinc-950/20 shadow-shallow-inner text-center py-14 sm:py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700 sm:rounded-[40px] sm:p-8">
                       <div className="h-20 w-20 rounded-full bg-emerald-500 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
                         <Trophy className="h-10 w-10 text-white" />
                       </div>
-                      <h2 className="text-4xl font-black italic uppercase tracking-tighter text-zinc-900 dark:text-zinc-50 mb-2">DAY {activeDay} FINISHED!</h2>
+                      <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter text-zinc-900 dark:text-zinc-50 mb-2">DAY {activeDay} FINISHED!</h2>
                       <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 italic max-w-xs mx-auto">
                         {[
                           "\"The only way out is through.\"",
@@ -226,11 +224,7 @@ export default function DashboardPage() {
                         .map(t => ({
                           id: t.id,
                           label: t.name,
-                          icon: t.id === 'water' ? <Droplets className="w-5 h-5 text-blue-500" /> :
-                            t.id === 'diet' ? <Utensils className="w-5 h-5 text-emerald-500" /> :
-                              t.id === 'workout1' ? <Dumbbell className="w-5 h-5 text-orange-500" /> :
-                                t.id === 'workout2' ? <Dumbbell className="w-5 h-5 text-purple-500" /> :
-                                  <BookOpen className="w-5 h-5 text-amber-500" />,
+                          iconId: t.icon,
                           completed: t.isCompleted
                         }))}
                       onTaskToggle={async (taskId, isCompleted) => {
@@ -277,12 +271,12 @@ export default function DashboardPage() {
                 />
                 <StatsCard
                   label="Consistency"
-                  value={`${Math.round((lastCompletedDay / currentDay) * 100) || 0}%`}
+                  value={`${Math.round((lastCompletedDay / Math.max(currentDay, 1)) * 100) || 0}%`}
                   icon={<Target className="h-6 w-6 text-emerald-500" />}
                 />
                 <StatsCard
                   label="Days Left"
-                  value={75 - lastCompletedDay}
+                  value={Math.max(totalDays - lastCompletedDay, 0)}
                   icon={<Calendar className="h-6 w-6 text-indigo-500" />}
                 />
 
@@ -302,7 +296,7 @@ export default function DashboardPage() {
           </div>
         ) : activeTab === 'progress' ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
-            <WeightChart entries={currentChallenge?.entries || []} />
+            <WeightChart entries={currentChallenge?.entries || []} totalDays={totalDays} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-1">
@@ -372,10 +366,7 @@ export default function DashboardPage() {
                 <p className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest italic">Facing the giants. Survival of the disciplined.</p>
              </div>
              {isLeaderboardLoading ? (
-               <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">Syncing Arena...</p>
-               </div>
+               <AscendLoader label="Syncing leaderboard" />
              ) : (
                <Leaderboard data={leaderboardData} currentUserId={user?.id} />
              )}
@@ -391,38 +382,44 @@ export default function DashboardPage() {
           router.push("/onboarding");
         }}
         title="Restart Challenge?"
-        message="This will permanently delete all your progress data for this 75-day challenge. This action cannot be undone."
+        message={`This will permanently delete all your progress data for ${challengeTitle}. This action cannot be undone.`}
+        requirePhrase="I QUITE THE CHALLENDGE"
       />
 
       {/* Mobile Nav Overlay */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-zinc-950/90 p-2 text-white shadow-2xl backdrop-blur-lg dark:bg-emerald-600/90 md:hidden z-50">
+      <nav className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 rounded-[28px] border border-white/10 bg-zinc-950/85 p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl dark:bg-zinc-900/90 md:hidden">
+        <div className="grid grid-cols-3 gap-1">
         <button
           onClick={() => setActiveTab('overview')}
           className={cn(
-            "flex h-12 items-center gap-2 rounded-full px-6 font-bold transition-all",
-            activeTab === 'overview' ? "bg-white/10 text-white" : "text-zinc-400"
+            "flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+            activeTab === 'overview' ? "bg-white text-zinc-950 shadow-lg shadow-black/20 dark:bg-emerald-400" : "text-zinc-400 hover:bg-white/5 hover:text-white"
           )}
         >
+          <LayoutDashboard className="h-5 w-5" />
           Overview
         </button>
         <button
           onClick={() => setActiveTab('progress')}
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-full transition-all",
-            activeTab === 'progress' ? "bg-white/10 text-white" : "text-zinc-400"
+            "flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+            activeTab === 'progress' ? "bg-white text-zinc-950 shadow-lg shadow-black/20 dark:bg-emerald-400" : "text-zinc-400 hover:bg-white/5 hover:text-white"
           )}
         >
-          <TrendingUp className="h-6 w-6" />
+          <TrendingUp className="h-5 w-5" />
+          Progress
         </button>
         <button
           onClick={() => setActiveTab('leaderboard')}
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-full transition-all",
-            activeTab === 'leaderboard' ? "bg-white/10 text-white" : "text-zinc-400"
+            "flex h-14 flex-col items-center justify-center gap-0.5 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+            activeTab === 'leaderboard' ? "bg-white text-zinc-950 shadow-lg shadow-black/20 dark:bg-emerald-400" : "text-zinc-400 hover:bg-white/5 hover:text-white"
           )}
         >
-          <Trophy className="h-6 w-6" />
+          <Trophy className="h-5 w-5" />
+          Board
         </button>
+        </div>
       </nav>
     </div>
   );

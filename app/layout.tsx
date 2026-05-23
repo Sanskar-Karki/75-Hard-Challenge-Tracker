@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "75 Hard Tracker | Evolution",
-  description: "The ultimate 75-day mental toughness challenge tracker. Premium, modern, and results-driven.",
+  title: "Ascend | Evolution",
+  description: "A flexible challenge and habit logging platform. Premium, modern, and results-driven.",
 };
 
 

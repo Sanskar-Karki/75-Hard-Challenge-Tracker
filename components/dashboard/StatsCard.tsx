@@ -33,7 +33,7 @@ export default function StatsCard({
 
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-[40px] p-6 transition-all duration-500",
+      "relative overflow-hidden rounded-[28px] p-5 transition-all duration-500 sm:rounded-[40px] sm:p-6",
       "shadow-shallow-inner dark:border-zinc-800/50",
       variant === 'default' ? "bg-white dark:bg-zinc-950/40 dark:border" : "",
       // 🔥 Level 1 (Rookie): Warm Amber
@@ -108,17 +108,17 @@ export function DetailedProgress({ totalDays, completedDays }: { totalDays: numb
   
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-zinc-500">Overall Progress</p>
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">{percent}% <span className="text-lg font-medium text-zinc-400">Completed</span></h2>
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 sm:text-3xl">{percent}% <span className="text-base font-medium text-zinc-400 sm:text-lg">Completed</span></h2>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Day {completedDays} of {totalDays}</p>
         </div>
       </div>
       
-      <div className="relative h-4 w-full bg-zinc-100 rounded-full overflow-hidden dark:bg-zinc-800 shadow-inner">
+      <div className="relative h-3.5 w-full bg-zinc-100 rounded-full overflow-hidden dark:bg-zinc-800 shadow-inner sm:h-4">
         {/* Main Progress Bar */}
         <motion.div
           initial={{ width: 0 }}

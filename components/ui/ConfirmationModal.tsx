@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ConfirmationModalProps {
@@ -20,15 +20,15 @@ export default function ConfirmationModal({
   onConfirm,
   title,
   message,
-  requirePhrase = "I QUIT 75 HARD CHALLENGE"
+  requirePhrase = "RESTART CHALLENGE"
 }: ConfirmationModalProps) {
   const [inputValue, setInputValue] = useState("");
   const isPhraseCorrect = inputValue.trim().toUpperCase() === requirePhrase.toUpperCase();
 
-  // Reset input when modal closes
-  useEffect(() => {
-    if (!isOpen) setInputValue("");
-  }, [isOpen]);
+  const handleClose = () => {
+    setInputValue("");
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -38,7 +38,7 @@ export default function ConfirmationModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="fixed inset-0 z-[100] bg-zinc-950/40 backdrop-blur-sm dark:bg-black/90"
           />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
@@ -106,7 +106,7 @@ export default function ConfirmationModal({
                       disabled={!isPhraseCorrect}
                       onClick={() => {
                         onConfirm();
-                        onClose();
+                        handleClose();
                       }}
                       whileHover={isPhraseCorrect ? { scale: 1.02 } : {}}
                       whileTap={isPhraseCorrect ? { scale: 0.98 } : {}}
@@ -120,7 +120,7 @@ export default function ConfirmationModal({
                       Restart Challenge
                     </motion.button>
                     <button
-                      onClick={onClose}
+                      onClick={handleClose}
                       className={cn(
                         "flex h-12 w-full items-center justify-center rounded-2xl bg-zinc-50 text-xs font-bold text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-600 dark:bg-zinc-950/20 dark:hover:bg-zinc-800 cursor-pointer",
                         isPhraseCorrect

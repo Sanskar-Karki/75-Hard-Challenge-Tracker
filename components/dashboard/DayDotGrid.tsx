@@ -5,16 +5,16 @@ import { cn } from "@/lib/utils";
 import { X, Check } from "lucide-react";
 
 interface DayDotGridProps {
-  currentDay: number; // 0-75 (0 = challenge hasn't started yet)
+  currentDay: number; // 0..totalDays (0 = challenge hasn't started yet)
+  totalDays: number;
   completedDays: number[]; // Array of completed day numbers
-  entries?: { dayNumber: number; tasks: { isCompleted: boolean }[] }[];
   onDayClick?: (day: number) => void;
 }
 
 export default function DayDotGrid({
   currentDay,
+  totalDays,
   completedDays,
-  entries = [],
   onDayClick,
 }: DayDotGridProps) {
   // 🛡️ Animation Variants
@@ -34,14 +34,7 @@ export default function DayDotGrid({
     show: { opacity: 1, scale: 1 },
   };
 
-  const days = Array.from({ length: 75 }, (_, i) => i + 1);
-
-  // Helper: check if a day has all tasks checked
-  const isDayAllTasksChecked = (day: number): boolean => {
-    const entry = entries.find(e => e.dayNumber === day);
-    if (!entry || !entry.tasks || entry.tasks.length === 0) return false;
-    return entry.tasks.every(t => t.isCompleted);
-  };
+  const days = Array.from({ length: Math.max(1, totalDays) }, (_, i) => i + 1);
 
   // Helper: check if a day is "failed" (past day, not completed via completeDay)
   const isDayIncomplete = (day: number): boolean => {
@@ -56,7 +49,7 @@ export default function DayDotGrid({
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-5 gap-3 md:grid-cols-15 sm:grid-cols-10"
+      className="grid grid-cols-7 gap-2 sm:grid-cols-10 sm:gap-3 md:grid-cols-15"
     >
       {days.map((day) => {
         const isCompleted = completedDays.includes(day);
@@ -79,7 +72,7 @@ export default function DayDotGrid({
             whileTap={{ scale: isClickable ? 0.9 : 1 }}
             onClick={() => isClickable && onDayClick?.(day)}
             className={cn(
-              "relative group flex aspect-square h-6 w-6 items-center justify-center rounded-full text-[10px] font-black transition-all duration-300 md:h-8 md:w-8 md:text-xs",
+              "relative group flex aspect-square h-8 w-8 items-center justify-center justify-self-center rounded-full text-[10px] font-black transition-all duration-300 md:text-xs",
               // Completed days: green
               isCompleted &&
                 "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-200/50 dark:shadow-emerald-950/40",

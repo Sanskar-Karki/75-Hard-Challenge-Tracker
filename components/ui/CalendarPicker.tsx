@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils";
 interface CalendarPickerProps {
   selectedDate: Date;
   onChange: (date: Date) => void;
+  durationDays?: number;
+  showEndDate?: boolean;
 }
 
-export default function CalendarPicker({ selectedDate, onChange }: CalendarPickerProps) {
+export default function CalendarPicker({ selectedDate, onChange, durationDays = 75, showEndDate = true }: CalendarPickerProps) {
+  const offsetDays = Math.max(1, durationDays) - 1;
   const [viewDate, setViewDate] = useState(new Date(selectedDate));
 
   const daysInMonth = useMemo(() => {
@@ -49,7 +52,7 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
 
   const isTargetDate = (date: Date) => {
     const target = new Date(selectedDate);
-    target.setDate(target.getDate() + 74);
+    target.setDate(target.getDate() + offsetDays);
     return date.toDateString() === target.toDateString();
   };
 
@@ -63,7 +66,7 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
           <ChevronLeft className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
         </button>
 
-        <h3 className="text-sm font-black uppercase italic tracking-[0.3em] text-zinc-900 dark:text-zinc-50">
+        <h3 className="text-xs font-black uppercase italic tracking-[0.18em] text-zinc-900 dark:text-zinc-50 sm:text-sm sm:tracking-[0.3em]">
           {viewDate.toLocaleString("default", { month: "long" })} <span className="text-zinc-400 font-medium not-italic">{viewDate.getFullYear()}</span>
         </h3>
 
@@ -90,10 +93,10 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
               <button
                 onClick={() => onChange(date)}
                 className={cn(
-                  "w-8 h-8 text-[10px] font-extrabold rounded-lg transition-all flex items-center justify-center cursor-pointer",
+                  "w-9 h-9 text-[10px] font-extrabold rounded-lg transition-all flex items-center justify-center cursor-pointer sm:h-8 sm:w-8",
                   isSelected(date)
                     ? "bg-zinc-950 text-white scale-110 shadow-lg dark:bg-emerald-500 ring-2 ring-emerald-500/20"
-                    : isTargetDate(date)
+                    : showEndDate && isTargetDate(date)
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50"
                       : isToday(date)
                         ? "bg-zinc-100 text-zinc-900 border border-zinc-200 dark:bg-zinc-800 dark:text-white"
@@ -120,15 +123,17 @@ export default function CalendarPicker({ selectedDate, onChange }: CalendarPicke
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em]">
-          <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/30 ring-1 ring-emerald-500/50" />
-            <span className="text-zinc-400">End Date</span>
+        {showEndDate && (
+          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em]">
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/30 ring-1 ring-emerald-500/50" />
+              <span className="text-zinc-400">End Date</span>
+            </div>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+              {new Date(new Date(selectedDate).getTime() + offsetDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
           </div>
-          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-            {new Date(new Date(selectedDate).getTime() + 74 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </span>
-        </div>
+        )}
       </div>
     </div>
   );

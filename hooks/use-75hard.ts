@@ -2,26 +2,42 @@ import { create } from "zustand";
 import { Task, DayEntry, Challenge } from "@/types";
 import { createClient } from "@/utils/supabase/client";
 
+export interface ChallengeConfig {
+  totalDays: number;
+  tasks: Task[];
+  title?: string;
+}
+
 interface TrackerState {
   currentChallenge: Challenge | null;
   lastCompletedDay: number;
   isLoading: boolean;
   hasFetched: boolean; // Tracks if at least one cloud sync has completed
-  startChallenge: (startDate: string, userId: string, userName?: string, userImage?: string, userEmail?: string) => Promise<void>;
+  startChallenge: (
+    startDate: string,
+    userId: string,
+    config: ChallengeConfig,
+    userName?: string,
+    userImage?: string,
+    userEmail?: string
+  ) => Promise<void>;
   updateTask: (dayNumber: number, taskId: string, isCompleted: boolean, token?: string) => Promise<void>;
   updateWeight: (dayNumber: number, weight: number, token?: string) => Promise<void>;
   completeDay: (dayNumber: number, token?: string) => Promise<void>;
   resetChallenge: () => Promise<void>;
   getCurrentDay: () => number;
+  getTotalDays: () => number;
   fetchChallenge: (userId: string, userName?: string, userImage?: string, userEmail?: string) => Promise<void>;
   fetchLeaderboard: () => Promise<any[]>;
 }
 
-const DEFAULT_TASKS: Task[] = [
+// Legacy default tasks — used as a fallback when loading old challenges
+// saved before customization was introduced.
+export const LEGACY_75_HARD_TASKS: Task[] = [
   { id: 'water', name: 'Drink 4L Water', isCompleted: false, icon: 'droplet' },
   { id: 'diet', name: 'Stick to Diet', isCompleted: false, icon: 'utensils' },
-  { id: 'workout1', name: 'Workout 1 (45min)', isCompleted: false, icon: 'dumbbell' },
-  { id: 'workout2', name: 'Workout 2 (45min)', isCompleted: false, icon: 'dumbbell' },
+  { id: 'workout1', name: 'Outdoor Workout (45min)', isCompleted: false, icon: 'dumbbell' },
+  { id: 'workout2', name: 'Indoor Workout (45min)', isCompleted: false, icon: 'dumbbell' },
   { id: 'reading', name: 'Read 10 Pages', isCompleted: false, icon: 'book' },
 ];
 
@@ -71,21 +87,27 @@ export const use75Hard = create<TrackerState>((set, get) => ({
   getCurrentDay: () => {
     const { currentChallenge } = get();
     if (!currentChallenge) return 1;
-    
+
     // Normalize both dates to midnight local time for pure day counting
     const startDate = new Date(currentChallenge.startDate);
     startDate.setHours(0, 0, 0, 0);
-    
+
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     // Difference in days (1000 * 60 * 60 * 24 = 86,400,000 ms per day)
     const diffTime = today.getTime() - startDate.getTime();
     const day = Math.floor(diffTime / 86400000) + 1;
-    
+
     // Return 0 if day is <= 0 (start date hasn't arrived yet)
     // This keeps all days locked until the challenge actually begins
-    return Math.min(Math.max(day, 0), 75);
+    const total = currentChallenge.totalDays || 75;
+    return Math.min(Math.max(day, 0), total);
+  },
+
+  getTotalDays: () => {
+    const { currentChallenge } = get();
+    return currentChallenge?.totalDays || 75;
   },
 
   fetchChallenge: async (userId, userName, userImage, userEmail) => {
@@ -112,11 +134,18 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     }
 
     if (data) {
-      const challengeData = { 
-        ...data.data, 
-        userName: userName || data.data.userName, 
+      // Backfill totalDays / tasks template for challenges created before
+      // customization was added (legacy 75 Hard format).
+      const legacyTotalDays = Array.isArray(data.data?.entries) ? data.data.entries.length : 75;
+      const challengeData = {
+        ...data.data,
+        userName: userName || data.data.userName,
         userImage: userImage || data.data.userImage,
-        userEmail: userEmail || data.data.userEmail
+        userEmail: userEmail || data.data.userEmail,
+        totalDays: data.data.totalDays || legacyTotalDays,
+        tasks: Array.isArray(data.data.tasks) && data.data.tasks.length > 0
+          ? data.data.tasks
+          : LEGACY_75_HARD_TASKS,
       };
       
       // Update user info in the table using dedicated columns
@@ -175,27 +204,41 @@ export const use75Hard = create<TrackerState>((set, get) => ({
     
     const { data, error } = await supabase
       .from('challenges')
-      .select('user_id, last_completed_day, user_name, user_image, user_email, updated_at')
+      .select('user_id, last_completed_day, user_name, user_image, user_email, updated_at, data')
       .order('last_completed_day', { ascending: false })
       .limit(20);
-      
+
     if (error) {
       console.error('❌ Fetch Leaderboard Error:', error.message);
       return [];
     }
-    
-    return (data || []).map(item => ({
-      ...item,
-      user_name: item.user_name || "Warrior"
-    }));
+
+    return (data || []).map(item => {
+      const total = item.data?.totalDays
+        || (Array.isArray(item.data?.entries) ? item.data.entries.length : 75);
+      const title = item.data?.title;
+      // Strip the heavy data blob before returning
+      const { data: _data, ...rest } = item as any;
+      return {
+        ...rest,
+        user_name: item.user_name || "Warrior",
+        total_days: total,
+        challenge_title: title,
+      };
+    });
   },
 
-  startChallenge: async (startDate, userId, userName, userImage, userEmail) => {
+  startChallenge: async (startDate, userId, config, userName, userImage, userEmail) => {
     const supabase = createClient();
-    const entries: DayEntry[] = Array.from({ length: 75 }, (_, i) => ({
+    const totalDays = Math.max(1, Math.floor(config.totalDays || 75));
+    const taskTemplate: Task[] = (config.tasks && config.tasks.length > 0
+      ? config.tasks
+      : LEGACY_75_HARD_TASKS).map(t => ({ ...t, isCompleted: false }));
+
+    const entries: DayEntry[] = Array.from({ length: totalDays }, (_, i) => ({
       dayNumber: i + 1,
       date: new Date(new Date(startDate).getTime() + i * 24 * 60 * 60 * 1000).toISOString(),
-      tasks: DEFAULT_TASKS.map(t => ({ ...t })),
+      tasks: taskTemplate.map(t => ({ ...t })),
       waterProgress: 0,
       isDayCompleted: false,
     }));
@@ -210,6 +253,9 @@ export const use75Hard = create<TrackerState>((set, get) => ({
       currentDay: 1,
       status: "IN_PROGRESS",
       entries,
+      totalDays,
+      tasks: taskTemplate,
+      title: config.title,
     };
 
     set({
@@ -288,10 +334,11 @@ export const use75Hard = create<TrackerState>((set, get) => ({
       return entry;
     });
 
+    const totalDays = currentChallenge.totalDays || 75;
     const updatedChallenge = {
       ...currentChallenge,
       entries: updatedEntries,
-      status: (dayNumber === 75 ? "COMPLETED" : "IN_PROGRESS"),
+      status: (dayNumber === totalDays ? "COMPLETED" : "IN_PROGRESS"),
     };
 
     set({

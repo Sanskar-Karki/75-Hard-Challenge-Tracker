@@ -1,15 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy, Medal, Crown, Star, Flame, User } from "lucide-react";
+import { Trophy, Medal, Crown, Flame, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-interface LeaderboardEntry {
+export interface LeaderboardEntry {
   user_id: string;
   last_completed_day: number;
   user_name: string;
   user_image: string;
+  total_days?: number;
 }
 
 interface LeaderboardProps {
@@ -145,7 +146,8 @@ function PodiumCard({ entry, rank, isCurrentUser, className }: { entry: Leaderbo
 }
 
 function LeaderboardRow({ entry, rank, isCurrentUser }: { entry: LeaderboardEntry, rank: number, isCurrentUser: boolean }) {
-  const percent = Math.round((entry.last_completed_day / 75) * 100);
+  const totalDays = entry.total_days || 75;
+  const percent = Math.round((entry.last_completed_day / totalDays) * 100);
 
   return (
     <motion.div 
